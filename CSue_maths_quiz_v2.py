@@ -1,8 +1,8 @@
-# Name: CSue_maths_quiz_v2
+# Name: CSue_maths_quiz_v3
 # Purpose: Math Game For Primary Students
-# Version: 2
+# Version: 3
 # Author: Carlos Sue
-# Date: 17/01/2026
+# Date: 18/01/2026
 
 """
 Using Tkinter to create a maths game with a GUI.
@@ -31,8 +31,13 @@ list_game_rounds = []
 
 # Commonly used headings and subheading text.
 CON_SUBHEADING = "TeKura | Primary Mathematics"
+CON_NAME_ERROR = "Error! Enter a valid name"
+CON_INT_ERROR = "Error! Enter a valid number"
 h1 = ("Lexend", 14, "normal")
 h2 = ("Lexend", 15, "bold")
+
+# Store input for addition or multiplication game mode.
+game_mode_selected = ""
 
 
 def quit():
@@ -45,7 +50,7 @@ def quit_button():
 
     Helps to limit and reduce repetitive code.
     """
-    return Button(root, text="Quit", bg="#dd3d3d", fg="white",
+    return Button(root, text="Quit (F4)", bg="#dd3d3d", fg="white",
                   activebackground="#9b111e", activeforeground="white",
                   font=h2, command=quit)
 
@@ -55,7 +60,6 @@ def instructions():
     h3 = ("Lexend", 18, "normal")  # Commonly used font style
 
     canvas1.delete("all")
-
     canvas1.create_text(1180, 30,
                         text=CON_SUBHEADING, font=h1)  # Subheading text
 
@@ -63,15 +67,15 @@ def instructions():
     canvas1.create_window(170, 820, width=150, height=70, window=quit_button())
 
     canvas1.create_window(1180, 820, width=150, height=70,
-                          window=(Button(root, text="Play",
+                          window=(Button(root, text="Play (↵)",
                                          bg="#459843",
                                          fg="white",
                                          activebackground="#035718",
                                          activeforeground="white",
                                          font=h2,
-                                         command=questions)))
+                                         command=game_mode)))
     # Bind keys to buttons (questions, quit)
-    root.bind("<Return>", lambda event: questions())
+    root.bind("<Return>", lambda event: game_mode())
     root.bind("<F4>", lambda event: quit())
 
     # Instructions text
@@ -92,23 +96,99 @@ def instructions():
  by hitting F4 on your keyboard.", font=("Lexend", 18, "bold"))
 
 
-def questions():
-    """Ask the player 5 addition maths questions."""
-    global str_name
+def mode_decision(mode):
+    """Attribute game_mode_selected variable to a game mode."""
+    global game_mode_selected
+    game_mode_selected = mode
+    questions()
 
-    # Convert user_name so it can be used as a string.
-    user_name = str_name.get().title()
+
+def game_mode():
+    """Display 3 options to progress the game.
+
+    Selection between Addition, Multiplication and
+    Quit button.
+    """
+    canvas1.delete("all")
+    canvas1.create_text(675, 220,
+                        text="Please Select a game mode:",
+                        font=("Lexend", 20, "bold"))
+    canvas1.create_text(1180, 30,
+                        text=CON_SUBHEADING, font=h1)
+    canvas1.create_window(675, 370, width=205, height=90,
+                          window=(Button(root, text="Addition",
+                                         bg="green",
+                                         fg="white",
+                                         activebackground="green",
+                                         activeforeground="white",
+                                         font=h2,
+                                         command=lambda: mode_decision(
+                                             "addition"))))
+    canvas1.create_window(675, 500, width=205, height=90,
+                          window=(Button(root, text="Multiplication",
+                                         bg="blue",
+                                         fg="white",
+                                         activebackground="blue",
+                                         activeforeground="white",
+                                         font=h2,
+                                         command=lambda: mode_decision(
+                                             "multiplication"))))
+    canvas1.create_window(675, 630, width=205, height=90, window=quit_button())
+    root.bind("<F4>", lambda event: quit())
+
+
+def process_input(int_answer):
+    """Process user answer.
+
+    Error catch the number input.
+
+    Repeat the questions() function.
+    """
+    global question_entry, error_message
+
+    # Get the user input as a string.
+    user_answer = question_entry.get().strip()
+
+    try:
+        int_user_answer = int(user_answer)
+    except ValueError:
+        canvas1.delete("msg")
+        error_message = (
+            canvas1.create_text(820, 438, text=CON_INT_ERROR, font=h1,
+                                fill="red", tags="msg"))
+        question_entry.delete(0, END)
+        return
+
+    if int_user_answer < 0 or int_user_answer > 144:
+        canvas1.delete("msg")
+        error_message = (
+            canvas1.create_text(820, 438, text=CON_INT_ERROR, font=h1,
+                                fill="red", tags="msg"))
+        question_entry.delete(0, END)
+        return
+
+    list_user_answers.append(int_user_answer)
+    list_answers.append(int_answer)
+
+    questions()
+
+
+def questions():
+    """Ask the player 5 addition or multiplication questions.
+
+    Randomly generate numbers between 1 and 12 inclusive.
+    """
+    global str_username, game_mode_selected
 
     # Find the number of rounds played by looking at the number of answers.
     game_round = len(list_user_answers)
 
+    if game_round == 5:
+        results()
+        return
+
     # Later used to calculate margins and spacing.
     list_game_rounds.append(game_round)
-
-    # Generate the numbers and calculate the question answer.
-    int_random_1 = randint(1, 500)
-    int_random_2 = randint(1, 500)
-    int_answer = int_random_1 + int_random_2
 
     # Clear canvas and entry box.
     canvas1.delete("all")
@@ -117,8 +197,21 @@ def questions():
     canvas1.create_text(1180, 30,
                         text=CON_SUBHEADING, font=h1)  # Subheading text
 
-    canvas1.create_text(500, 380, text="{}, what is {}\
- + {}?".format(user_name, int_random_1, int_random_2),
+    # Generate the numbers.
+    int_random_1 = randint(1, 12)
+    int_random_2 = randint(1, 12)
+
+    # Decide the text output (addition or multiplication).
+    if game_mode_selected == "addition":
+        int_answer = int_random_1 + int_random_2
+        str_question = ("{}, what is {} + {}\
+ ?".format(str_username, int_random_1, int_random_2))
+    else:  # multiplication
+        int_answer = int_random_1 * int_random_2
+        str_question = ("{}, what is {} x {}\
+ ?".format(str_username, int_random_1, int_random_2))
+
+    canvas1.create_text(500, 380, text=str_question,
                         font=("Lexend", 18, "bold"))
 
     # Quit Button and entry box.
@@ -128,19 +221,19 @@ def questions():
                           height=70, window=quit_button())
 
     # Repeatedly ask questions until game_round is 5.
-    # If condition is not met, take user to process_answer defintion.
+    # If condition is not met, take user to process_input defintion.
     if game_round != 5:
-        # Bind enter key to next button (process_answer).
-        root.bind("<Return>", lambda event: process_answer(int_answer))
+        # Bind enter key to next button (process_input).
+        root.bind("<Return>", lambda event: process_input(int_answer))
         (canvas1.create_window(1180, 820, width=150, height=70,
                                window=(Button(root,
-                                              text="Next", bg="#459843",
+                                              text="Next (↵)", bg="#459843",
                                               fg="white",
                                               activebackground="#035718",
                                               activeforeground="white",
                                               font=h2,
                                               command=lambda:
-                                              process_answer(int_answer)))))
+                                              process_input(int_answer)))))
 
     # If condition is met, the next button will take user to results.
     else:
@@ -148,7 +241,7 @@ def questions():
         root.bind("<Return>", lambda event: results())
         canvas1.create_window(1180, 820, width=150, height=70,
                               window=(Button(root,
-                                             text="Results", bg="#459843",
+                                             text="Results (↵)", bg="#459843",
                                              fg="white",
                                              activebackground="#035718",
                                              activeforeground="white",
@@ -158,24 +251,6 @@ def questions():
     canvas1.update()
 
 
-def process_answer(int_answer):
-    """Process user answer.
-
-    Reintiates the questions() definition.
-    """
-    global question_entry
-
-    # Get the user input as a string.
-    user_answer = question_entry.get().strip()
-
-    # Convert answer into integer and add to list.
-    list_user_answers.append(int(user_answer))
-
-    list_answers.append(int_answer)
-
-    questions()
-
-
 def results():
     """Create the last graphic results page.
 
@@ -183,10 +258,7 @@ def results():
 
     Record the users name and score in the external text file.
     """
-    global str_name
-
-    # Convert user_name so it can be used as a string.
-    user_name = str_name.get().title()
+    global str_name_entry, str_username
 
     # Setting up variables.
     int_score = 0
@@ -217,7 +289,7 @@ def results():
         canvas1.create_text(correct_x,
                             margin_y + pad_y, text="The correct answer was {}."
                             .format(list_answers[i]),
-                            font=h3, fill="red")
+                            font=h3, fill=fill_color)
 
         if list_user_answers[i] == list_answers[i]:
             canvas1.create_text(result_x, margin_y + pad_y, text="Correct",
@@ -231,7 +303,7 @@ def results():
 
     canvas1.create_window(1180, 820, width=150, height=70,
                           window=(Button(root,
-                                         text="Play Again",
+                                         text="Play Again(↵)",
                                          bg="#459843",
                                          fg="white",
                                          activebackground="#035718",
@@ -246,7 +318,7 @@ def results():
     # Write the players name and score on the external file.
     text_file = open("txtfile.txt", "a")
     text_file.write("{} got {} questions correct.\n\n"
-                    .format(user_name, int_score))
+                    .format(str_username, int_score))
     text_file.close()
 
 
@@ -256,6 +328,30 @@ def play_again():
     main()
 
 
+def name_catch():
+    """Error catch the name input."""
+    global error_message, str_username
+
+    str_name_input = str_name_entry.get().strip()
+
+    # Do not allow anything other than letters.
+    if not str_name_input.isalpha():
+        canvas1.delete("msg")
+        error_message = (
+            canvas1.create_text(820, 438, text=CON_NAME_ERROR, font=h1,
+                                fill="red", tags="msg"))
+        str_name_entry.delete(0, END)
+    # Allow names between 2 and 20 characters inclusive.
+    elif len(str_name_input) < 2 or len(str_name_input) > 20:
+        canvas1.delete("msg")
+        error_message = canvas1.create_text(820, 438, text="Please enter a name\
+ between 2 and 20 characters", font=h1, fill="red", tags="msg")
+        str_name_entry.delete(0, END)
+    else:
+        str_username = str_name_input.title()
+        instructions()
+
+
 def main():
     """Set up the canvas and window size.
 
@@ -263,7 +359,7 @@ def main():
 
     Define the properties of entry boxes.
     """
-    global root, canvas1, str_name, question_entry
+    global root, canvas1, str_name_entry, question_entry
 
     # Reset lists for when user plays again.
     list_answers.clear()
@@ -282,7 +378,7 @@ def main():
                         text=CON_SUBHEADING, font=h1)  # Subheading text
 
     # Name entry box properties.
-    str_name = Entry(root, font=("Lexend", 26, "normal"))
+    str_name_entry = Entry(root, font=("Lexend", 26, "normal"))
 
     # Question entry box properties.
     question_entry = Entry(root, font=("Lexend", 26, "normal"))
@@ -290,22 +386,23 @@ def main():
     # Quit and Next buttons.
     canvas1.create_window(170, 820, width=150, height=70, window=quit_button())
     canvas1.create_window(1180, 820, width=150, height=70,
-                          window=(Button(root, text="Next",
+                          window=(Button(root, text="Next (↵)",
                                          bg="#459843",
                                          fg="white",
                                          activebackground="#035718",
                                          activeforeground="white",
                                          font=h2,
-                                         command=instructions)))
+                                         command=name_catch)))
     # Bind keys to buttons (instructions, quit)
-    root.bind("<Return>", lambda event: instructions())
+    root.bind("<Return>", lambda event: name_catch())
     root.bind("<F4>", lambda event: quit())
 
     # Ask for players name.
     canvas1.create_text(500, 380,
                         text="Please enter your name:",
                         font=("Lexend", 18, "bold"))
-    canvas1.create_window(820, 380, width=320, height=70, window=str_name)
+    canvas1.create_window(820, 380, width=320, height=70,
+                          window=str_name_entry)
     canvas1.pack()
     root.mainloop()
 
